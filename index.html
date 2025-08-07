@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Location Sender</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 400px;
+            width: 100%;
+            transform: translateY(0);
+            transition: all 0.3s ease;
+        }
+
+        .container:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+        }
+
+        .icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 2rem;
+            font-weight: 600;
+        }
+
+        .description {
+            color: #666;
+            margin-bottom: 30px;
+            line-height: 1.6;
+            font-size: 1rem;
+        }
+
+        .location-info {
+            background: #f8f9ff;
+            border-radius: 12px;
+            padding: 15px;
+            margin: 20px 0;
+            display: none;
+            border-left: 4px solid #667eea;
+        }
+
+        .location-info.show {
+            display: block;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .coord-item {
+            display: flex;
+            justify-content: space-between;
+            margin: 8px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+        }
+
+        .coord-label {
+            font-weight: bold;
+            color: #555;
+        }
+
+        .coord-value {
+            color: #667eea;
+        }
+
+        .send-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.1rem;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .send-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .send-btn:active {
+            transform: translateY(0);
+        }
+
+        .send-btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #ffffff40;
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .status {
+            margin-top: 20px;
+            font-weight: 600;
+            padding: 15px;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .accuracy-info {
+            font-size: 0.8rem;
+            color: #888;
+            margin-top: 10px;
+        }
+
+        .map-link {
+            display: inline-block;
+            margin-top: 10px;
+            padding: 8px 16px;
+            background: #28a745;
+            color: white;
+            text-decoration: none;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        .map-link:hover {
+            background: #218838;
+            transform: translateY(-1px);
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 30px 20px;
+            }
+            
+            h1 {
+                font-size: 1.8rem;
+            }
+            
+            .icon {
+                font-size: 3rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="icon">📍</div>
+        <h1>Share Your Location</h1>
+        <p class="description">
+            Click the button below to securely share your current location. 
+            Your coordinates will be sent to our form for processing.
+        </p>
+        
+        <div id="locationInfo" class="location-info">
+            <div class="coord-item">
+                <span class="coord-label">Latitude:</span>
+                <span id="latValue" class="coord-value">-</span>
+            </div>
+            <div class="coord-item">
+                <span class="coord-label">Longitude:</span>
+                <span id="lonValue" class="coord-value">-</span>
+            </div>
+            <div class="coord-item">
+                <span class="coord-label">Accuracy:</span>
+                <span id="accuracyValue" class="coord-value">-</span>
+            </div>
+            <a id="mapLink" href="#" target="_blank" class="map-link" style="display: none;">
+                🗺️ View on Map
+            </a>
+        </div>
+        
+        <button id="sendBtn" class="send-btn" onclick="sendLocation()">
+            <span id="btnText">Get My Location</span>
+        </button>
+        
+        <div id="status" class="status" style="display: none;"></div>
+    </div>
+
+    <script>
+        let currentPosition = null;
+
+        function updateStatus(message, type = 'info', show = true) {
+            const statusEl = document.getElementById("status");
+            statusEl.textContent = message;
+            statusEl.className = `status ${type}`;
+            statusEl.style.display = show ? 'block' : 'none';
+        }
+
+        function updateButton(text, disabled = false, loading = false) {
+            const btn = document.getElementById("sendBtn");
+            const btnText = document.getElementById("btnText");
+            
+            if (loading) {
+                btnText.innerHTML = `<span class="loading"></span> ${text}`;
+            } else {
+                btnText.textContent = text;
+            }
+            
+            btn.disabled = disabled;
+        }
+
+        function displayLocationInfo(position) {
+            const lat = position.coords.latitude;
+            const lon = position.coords.longitude;
+            const accuracy = position.coords.accuracy;
+            
+            document.getElementById("latValue").textContent = lat.toFixed(6);
+            document.getElementById("lonValue").textContent = lon.toFixed(6);
+            document.getElementById("accuracyValue").textContent = `±${Math.round(accuracy)}m`;
+            
+            const mapLink = `https://www.google.com/maps?q=${lat},${lon}`;
+            const mapLinkEl = document.getElementById("mapLink");
+            mapLinkEl.href = mapLink;
+            mapLinkEl.style.display = 'inline-block';
+            
+            document.getElementById("locationInfo").classList.add("show");
+        }
+
+        function sendLocation() {
+            if (!navigator.geolocation) {
+                updateStatus("❌ Geolocation is not supported by this browser.", 'error');
+                return;
+            }
+
+            updateButton("Getting Location...", true, true);
+            updateStatus("📡 Requesting your location...", 'info');
+
+            const options = {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 60000
+            };
+
+            navigator.geolocation.getCurrentPosition(
+                function(position) {
+                    currentPosition = position;
+                    displayLocationInfo(position);
+                    
+                    updateButton("Send to Form", false, false);
+                    updateStatus("📍 Location obtained! Click 'Send to Form' to submit.", 'success');
+                },
+                function(error) {
+                    let errorMessage = "❌ ";
+                    switch(error.code) {
+                        case error.PERMISSION_DENIED:
+                            errorMessage += "Location access denied. Please enable location permissions.";
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            errorMessage += "Location information unavailable.";
+                            break;
+                        case error.TIMEOUT:
+                            errorMessage += "Location request timed out. Please try again.";
+                            break;
+                        default:
+                            errorMessage += "Unknown error occurred: " + error.message;
+                            break;
+                    }
+                    updateStatus(errorMessage, 'error');
+                    updateButton("Try Again", false, false);
+                },
+                options
+            );
+        }
+
+        // Update button text and functionality after location is obtained
+        document.getElementById("sendBtn").addEventListener('click', function() {
+            if (currentPosition && document.getElementById("btnText").textContent === "Send to Form") {
+                submitToForm();
+            } else {
+                sendLocation();
+            }
+        });
+
+        function submitToForm() {
+            if (!currentPosition) {
+                updateStatus("❌ No location data available. Please get your location first.", 'error');
+                return;
+            }
+
+            updateButton("Submitting...", true, true);
+            updateStatus("📤 Sending location data...", 'info');
+
+            const lat = currentPosition.coords.latitude;
+            const lon = currentPosition.coords.longitude;
+            const mapLink = `https://www.google.com/maps?q=${lat},${lon}`;
+
+            // Google Form configuration
+            const formURL = "https://docs.google.com/forms/d/e/1FAIpQLSdyemjzKLppzpafklSzZ0LMC4NlqqGBekYAbV6eI2-mkJW8zg/formResponse";
+            const latitudeEntry = "entry.761808784";
+            const longitudeEntry = "entry.515159016";
+            const mapEntry = "entry.326460733";
+
+            const data = new URLSearchParams();
+            data.append(latitudeEntry, lat);
+            data.append(longitudeEntry, lon);
+            data.append(mapEntry, mapLink);
+
+            fetch(formURL + "?" + data.toString(), {
+                method: "GET",
+                mode: "no-cors"
+            }).then(() => {
+                updateStatus("✅ Location submitted successfully! Thank you.", 'success');
+                updateButton("Submit Another", false, false);
+                currentPosition = null;
+                document.getElementById("locationInfo").classList.remove("show");
+            }).catch((error) => {
+                console.error('Submission error:', error);
+                updateStatus("❌ Failed to submit location. Please try again.", 'error');
+                updateButton("Retry Submission", false, false);
+            });
+        }
+    </script>
+</body>
+</html>
